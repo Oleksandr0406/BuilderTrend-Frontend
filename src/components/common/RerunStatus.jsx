@@ -10,23 +10,24 @@ export const RerunStatus = ({startRerun, setStartRerun}) => {
     const [current, setCurrent] = useState(0);
     const [display, setDisplay] = useState('none');
     useEffect(() => {
+        console.log("display: ", display)
         const interval = setInterval(() => {
-            if (startRerun) {
+            // if (startRerun) {
                 checkScrapingStatus()
                     .then(response => response.json())
                     .then(result => {
                         setTotal(result.project_total);
                         setCurrent(result.project_current);
                         if (result.project_total === result.project_current) {
-                            setStartRerun(false);
                             setDisplay('none');
-                            if(result.project_total) toast.success("Messages are updated Successfully!")
+                            if(result.project_total && startRerun) toast.success("Messages are updated Successfully!")
+                            setStartRerun(false);
                             clearInterval(interval);
                         }
                         else setDisplay("flex")
                     });
-            }
-        }, 3000); // Check status every 5 seconds
+            // }
+        }, 15000); // Check status every 5 seconds
 
         return () => clearInterval(interval); // Clear interval on component unmount
     }, [startRerun, setStartRerun, display, setDisplay, setTotal, total, setCurrent, current, setInterval,]);

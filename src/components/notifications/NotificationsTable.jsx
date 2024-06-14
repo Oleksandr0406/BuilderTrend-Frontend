@@ -7,7 +7,8 @@ import { LuMessagesSquare, LuPencil } from "react-icons/lu";
 import { IoCloseSharp } from "react-icons/io5";
 import { BsCheckLg } from "react-icons/bs";
 import { combineSlices } from '@reduxjs/toolkit';
-import {getNotifications, setQued, cancelQued, setSent, updateLastMessage, downloadProjectMessage, downloadCustomerMessage, changeCustomerStatus, deleteCustomer, setVariables, getTimer, rerunChatGPT, getNewProjects, sendOptInEmail, sendOptInPhone, getVariables, checkMainTableUpdate, checkScrapingStatus} from '../../services/notifications'
+import {getNotifications, setQued, cancelQued, setSent, updateLastMessage, downloadProjectMessage, downloadCustomerMessage, changeCustomerStatus, deleteCustomer, setVariables, getTimer, rerunChatGPT, getNewProjects, sendOptInEmail, sendOptInPhone, getVariables, checkMainTableUpdate, checkScrapingStatus, deleteProject, downloadHistoryMessage} from '../../services/notifications'
+import ReactMarkdown from 'react-markdown';
 
 import moment from 'moment';
 import { DATE_FORMAT } from '../../constants';
@@ -194,7 +195,7 @@ export const NotificationsTable = () => {
                 .catch(error => {
                     console.error('Error:', error);
                 });
-        }, 15000);
+        }, 50000);
 
         // Cleanup function to clear the interval when the component unmounts
         return () => clearInterval(interval);
@@ -215,8 +216,15 @@ export const NotificationsTable = () => {
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    const handlerDownloadProject = async (project_id) => {
-        await downloadProjectMessage(project_id)
+    const handlerDownloadProject = async (childStatus, childData) => {
+        let project_id = childData.project_id;
+        console.log(childStatus, childData.project_id_for_api)
+        if(childStatus == "SENT") {
+            await downloadHistoryMessage(childData.history_id);
+        }
+        else{
+            await downloadProjectMessage(childData.project_id);
+        }
     }
     const handlerDownloadCustomer = async (customer_id) => {
         await downloadCustomerMessage(customer_id)
@@ -256,7 +264,7 @@ export const NotificationsTable = () => {
     }
     const handlerUpdateLastMessage = async (message) => {
         if (!turnOnEdit) return;
-
+        console.log("message: ", message);
         dispatch(loadingOn())
         await updateLastMessage(turnOnEdit, message)
         dispatch(loadingOff())
@@ -280,7 +288,7 @@ export const NotificationsTable = () => {
 
     const handleDeleteMessage = async (projectId) => {
         dispatch(loadingOn())
-        await updateLastMessage(projectId, '')
+        await deleteProject(projectId)
         dispatch(loadingOff())
         setRefetch(!refetch)
     }
@@ -325,19 +333,32 @@ export const NotificationsTable = () => {
         }
     };
 
-    const handleRerun = () => {
-        toast.success("Message updating started successfully!");
+    const handleRerun = async() => {
+        const response = await checkScrapingStatus();
+        const result = await response.json();
         setStartRerun(true);
         rerunChatGPT();
         closeSettingsModal();
-        toast.success("Generating new messages started successfully!");
+        if (result.project_total == result.project_current){
+            setStartRerun(true);
+            rerunChatGPT();
+            closeSettingsModal();
+            toast.success("Generating new messages started successfully!");
+        }
+        else{
+            toast.success("Generating notifications started already!");
+        }
     }
 
     const handleUpdateData = async (source) => {
         const response = await checkScrapingStatus();
         const result = await response.json();
-        console.log("result: ", result)
         if(source == "BuilderTrend") {
+            if (result.buildertrend_total != result.buildertrend_current) {
+                console.log(result.buildertrend_total,  result.buildertrend_current);
+                toast.success("Please wait until Buildertrend project updating finished.");
+                return;
+            }
             if (result.xactanalysis_total != result.xactanalysis_current){
                 toast.success("Please wait until Xactanalysis project updating finished.");
                 return;
@@ -349,7 +370,10 @@ export const NotificationsTable = () => {
                 console.log(result.buildertrend_total,  result.buildertrend_current);
                 toast.success("Please wait until Buildertrend project updating finished.");
                 return;
-
+            }
+            if (result.xactanalysis_total != result.xactanalysis_current){
+                toast.success("Please wait until Xactanalysis project updating finished.");
+                return;
             }
             setStartXactanalysis(true);
         }
@@ -454,8 +478,10 @@ export const NotificationsTable = () => {
                         </thead>
                         
                         <tbody className="bg-white">
+                            
                             {data?.map((item, dataIndex) => {
                                 let status = 'REVIEW';
+                                if (item.sent_timestamp) console.log("time:", item.sent_timestamp);
                                 if (item.message_status === 1) {
                                     status = 'REVIEW'
                                 }else if (item.message_status === 2) {
@@ -471,7 +497,7 @@ export const NotificationsTable = () => {
                                                 {expandId === item.customer_id ? <TbMinus className="text-3xl text-white font-bold cursor-pointer" onClick={() => setExpandId(null)}/> : 
                                                     <TbPlus className="text-3xl text-white font-bold cursor-pointer" onClick={() => setExpandId(item.customer_id)}/> }
                                             </td>
-                                            <td className="text-lg font-semibold text-white text-center">{!(expandId === item.customer_id) && (item.sent_timestamp ? moment(item.sent_timestamp).format(DATE_FORMAT) : '-')}</td>
+                                            <td className="text-lg font-semibold text-white text-center">{!(expandId === item.customer_id) && (item.sent_timestamp ? moment.utc(item.sent_timestamp).format(DATE_FORMAT) : '-')}</td>
                                             <td className="text-lg font-semibold text-white text-center">{!(expandId === item.customer_id)  && item.last_name}</td>
                                             <td className="text-lg font-semibold text-white text-center">{!(expandId === item.customer_id)  && item.first_name}</td>
                                             <td className="text-lg font-semibold text-white text-center">
@@ -637,7 +663,7 @@ export const NotificationsTable = () => {
                                             return (
                                                 <tr key={`child - ${childData.project_id}`} className={`bg-white border-t-2 border-t-gray-300 text-center`}>
                                                     <td />
-                                                    <td className="text-lg font-semibold py-2">{childData.sent_timestamp ? moment(item.sent_timestamp).format(DATE_FORMAT) : '-'}</td>
+                                                    <td className="text-lg font-semibold py-2">{childData.sent_timestamp ? moment.utc(childData.sent_timestamp).format(DATE_FORMAT) : '-'}</td>
                                                     <td className="text-lg font-semibold">{childData.last_name}</td>
                                                     <td className="text-lg font-semibold">{childData.first_name}</td>
                                                     <td className="text-lg font-semibold">
@@ -652,7 +678,7 @@ export const NotificationsTable = () => {
                                                     <td className="text-lg font-semibold">
                                                         <div className={`w-[80%] mx-auto text-orange-900 text-center py-1
                                                             ${childStatus === 'REVIEW' ? 'bg-yellow-500' : childStatus === 'QUED' ? 'bg-yellow-300' : 'bg-green-300'}`}>
-                                                            {childStatus}
+                                                            {childStatus} 
                                                         </div>
                                                     </td>
                                                     <td>
@@ -662,13 +688,12 @@ export const NotificationsTable = () => {
                                                             
                                                             <div className="flex gap-3 items-center">
                                                                 <p>{(childStatus === "QUED" && remainTime[dataIndex][childIndex]) && remainTime[dataIndex][childIndex]}</p> 
-                                                                {childStatus != "SENT" && 
-                                                                    <LuPencil className="text-2xl text-gray-400 cursor-pointer" 
-                                                                    onClick={() => {
-                                                                        setTurnOnEdit(childData.project_id)
-                                                                        setEditMessage(childData.last_message || '')
-                                                                    }}
-                                                                /> }
+                                                                <LuPencil className="text-2xl text-gray-400 cursor-pointer" 
+                                                                onClick={() => {
+                                                                    setTurnOnEdit(childData.project_id)
+                                                                    setEditMessage(childData.last_message || '')
+                                                                }}
+                                                                /> 
                                                                 { childStatus === 'REVIEW' && 
                                                                     (
                                                                         (item.opt_in_status_email ==3 && item.opt_in_status_phone ==3) ? 
@@ -698,8 +723,8 @@ export const NotificationsTable = () => {
                                                                         {
                                                                             (childData.phone !== "") && (<>
                                                                                 <img src={phoneIcon} alt="phoneIcon" style={{width:"30px", height: "30px", marginRight: "-30px"}}/>
-                                                                                <BsCheckLg className={`text-3xl ${childData.phone_sent_success === 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-1`} />
-                                                                                <BsCheckLg className={`text-3xl ${childData.phone_sent_success === 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-4 -mr-2`} />
+                                                                                <BsCheckLg className={`text-3xl ${childData.phone_sent_success == 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-1`} />
+                                                                                <BsCheckLg className={`text-3xl ${childData.phone_sent_success == 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-4 -mr-2`} />
                                                                             </>)
                                                                         }
                                                                     </div>
@@ -716,7 +741,7 @@ export const NotificationsTable = () => {
                                                                 { childStatus === 'QUED' && <FiMinusCircle className='text-2xl cursor-pointer text-red-500' 
                                                                     onClick={() => handlerCancelQued(childData.project_id) }
                                                                 />}
-                                                                <FiDownload className="text-3xl cursor-pointer " onClick={() => handlerDownloadProject(childData.project_id)}/>
+                                                                <FiDownload className="text-3xl cursor-pointer " onClick={() => handlerDownloadProject(childStatus, childData)}/>
 
                                                                 { childStatus === 'REVIEW' && <AiFillDelete className="text-3xl text-red-500 cursor-pointer"
                                                                     onClick={() => {

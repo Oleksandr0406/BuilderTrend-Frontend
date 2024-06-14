@@ -10,7 +10,7 @@ import { BsCheckLg } from "react-icons/bs";
 import { useDispatch, useSelector } from 'react-redux';
 import { setData, setSendTimer, updateMessageStatus } from '../../store/notificationSlice';
 import { loadingOff, loadingOn } from '../../store/authSlice';
-import { cancelQued, changeCustomerStatus, deleteCustomer, getNotifications, setQued, setSent, updateLastMessage, getTimer, getNewProjects, setVariables, rerunChatGPT, sendOptInEmail, sendOptInPhone, getVariables, checkMainTableUpdate } from '../../services/notifications';
+import { cancelQued, changeCustomerStatus, deleteCustomer, getNotifications, setQued, setSent, updateLastMessage, getTimer, getNewProjects, setVariables, rerunChatGPT, sendOptInEmail, sendOptInPhone, getVariables, checkScrapingStatus, checkMainTableUpdate, deleteProject } from '../../services/notifications';
 import moment from 'moment';
 import { DATE_FORMAT } from '../../constants';
 import { EditMessageModal } from '../common/EditMessageModal';
@@ -184,7 +184,7 @@ export const NotificationsBox = () => {
 
     const handleDeleteMessage = async (projectId) => {
         dispatch(loadingOn())
-        await updateLastMessage(projectId, '')
+        await deleteProject(projectId)
         dispatch(loadingOff())
         setRefetch(!refetch)
     }
@@ -288,16 +288,16 @@ export const NotificationsBox = () => {
         const result = await response.json();
         console.log("result: ", result)
         if(source == "BuilderTrend") {
-            if (result.xactanalysis_total != result.xactanalysis_current){
-                toast.success("Please wait until Xactanalysis project updating finished.");
+            if (result.buildertrend_total != result.buildertrend_current) {
+                console.log(result.buildertrend_total,  result.buildertrend_current);
+                toast.success("Please wait until Buildertrend project updating finished.");
                 return;
             }
             setStartBuildertrend(true);
         }
         else {
-            if (result.buildertrend_total != result.buildertrend_current) {
-                console.log(result.buildertrend_total,  result.buildertrend_current);
-                toast.success("Please wait until Buildertrend project updating finished.");
+            if (result.xactanalysis_total != result.xactanalysis_current){
+                toast.success("Please wait until Xactanalysis project updating finished.");
                 return;
             }
             setStartXactanalysis(true);
@@ -559,8 +559,8 @@ export const NotificationsBox = () => {
                                                             {
                                                                 (childData.phone !== "") && (<>
                                                                     <img src={phoneIcon} alt="phoneIcon" style={{width:"30px", height: "30px", marginRight: "-30px"}}/>
-                                                                    <BsCheckLg className={`text-3xl ${childData.phone_sent_success === 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-1`} />
-                                                                    <BsCheckLg className={`text-3xl ${childData.phone_sent_success === 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-4 -mr-2`} />
+                                                                    <BsCheckLg className={`text-3xl ${childData.phone_sent_success == 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-1`} />
+                                                                    <BsCheckLg className={`text-3xl ${childData.phone_sent_success == 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-4 -mr-2`} />
                                                                 </>)
                                                             }
                                                         </div>
@@ -584,7 +584,7 @@ export const NotificationsBox = () => {
 
                                             {expandChildId === childData.project_id && (
                                                 <div className='bg-white p-2 flex flex-col gap-1'>
-                                                    <p className='font-light text-xl'>{childData.sent_timestamp ? moment(item.sent_timestamp).format(DATE_FORMAT) : '-'}</p>
+                                                    <p className='font-light text-xl'>{childData.sent_timestamp ? moment(childData.sent_timestamp).format(DATE_FORMAT) : '-'}</p>
                                                     <p className='font-light text-xl'>{childData.claim_number}</p>
                                                     <div className='flex justify-between items-center'>
                                                         <p className='text-xl'>Message:</p>

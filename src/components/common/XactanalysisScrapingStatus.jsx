@@ -10,7 +10,7 @@ export const XactanalysisScrapingStatus = ({startXactanalysis, setStartXactanaly
 
     useEffect(() => {
         const interval = setInterval(() => {
-            if (startXactanalysis){
+            // if (startXactanalysis){
                 checkScrapingStatus()
                     .then(response => response.json())
                     .then(result => {
@@ -18,22 +18,22 @@ export const XactanalysisScrapingStatus = ({startXactanalysis, setStartXactanaly
                         setCurrent(result.xactanalysis_current);
                         
                         if (result.xactanalysis_total === result.xactanalysis_current) {
-                            setStartXactanalysis(false);
                             setDisplay('none');
-                            if(result.xactanalysis_total) {
+                            if(result.xactanalysis_total && startXactanalysis) {
                                 toast.success("Xactanalysis projects have been updated Successfully!");
                                 setStartRerun(true);
                                 toast.success("Message generating started!");
                             }
+                            setStartXactanalysis(false);
                             clearInterval(interval);
                         }
                         else setDisplay("flex")
                     });
-                }
-        }, 3000); // Check status every 5 seconds
+                // }z
+        }, 15000); // Check status every 5 seconds
 
         return () => clearInterval(interval); // Clear interval on component unmount
-    }, [startXactanalysis, setDisplay, startRerun, setStartRerun, setTotal, total, setCurrent, current, setInterval,]);
+    }, [startXactanalysis, setStartXactanalysis, setDisplay, startRerun, setStartRerun, setTotal, total, setCurrent, current, setInterval,]);
 
     const rotatingStyle = {
         animation: 'spin 2s linear infinite',

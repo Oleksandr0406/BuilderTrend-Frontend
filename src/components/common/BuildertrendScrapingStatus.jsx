@@ -11,7 +11,7 @@ export const BuildertrendScrapingStatus = ({startBuildertrend, setStartBuildertr
     console.log("startBuildertrend---", startBuildertrend)
     useEffect(() => {
         const interval = setInterval(() => {
-            if (startBuildertrend){
+            // if (startBuildertrend){
                 checkScrapingStatus()
                     .then(response => response.json())
                     .then(result => {
@@ -19,20 +19,20 @@ export const BuildertrendScrapingStatus = ({startBuildertrend, setStartBuildertr
                         setCurrent(result.buildertrend_current);
                         console.log(startBuildertrend)
                         if (result.buildertrend_total === result.buildertrend_current) {
-                            setStartBuildertrend(false);
                             setDisplay('none');
-                            if(result.buildertrend_total) {
+                            if(result.buildertrend_total && startBuildertrend) {
                                 toast.success("Buildertrend projects have been updated Successfully!")
                                 setStartRerun(true);
                                 toast.success("Message generating started!")
                             }
+                            setStartBuildertrend(false);
                             
                             clearInterval(interval);
                         }
                         else setDisplay("flex")
                     });
-            }
-        }, 3000); // Check status every 5 seconds
+            // }
+        }, 15000); // Check status every 5 seconds
 
         return () => clearInterval(interval); // Clear interval on component unmount
     }, [startBuildertrend, setStartBuildertrend, display, setDisplay, setTotal, total, setCurrent, current, setInterval, startRerun, setStartRerun]);

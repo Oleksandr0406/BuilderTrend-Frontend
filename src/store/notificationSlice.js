@@ -24,6 +24,7 @@ const notificationSlice = createSlice({
                 if(verifyString(item.project_name)) {
                     item.project_name = 'N/A';
                 }
+                
                 if(!obj[item.customer_id]) {
                     obj[item.customer_id] = {
                         ...item,

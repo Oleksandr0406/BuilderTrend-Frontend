@@ -44,13 +44,14 @@ export const Signin = () => {
       toast.error(res.detail);
       return;
     }
+    console.log(res.message);
     if (res['access_token']) {
       toast.success("You signed in successfully");
       localStorage.setItem('access_token', res.access_token)
       navigate('/notifications')
     }
     else{
-      toast.error("Email or Password are incorrect!");
+      toast.error(res.message);
     }
   }
 

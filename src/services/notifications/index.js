@@ -88,14 +88,25 @@ export const setSent = async (project_id) => {
     }
 }
 
+
 // Update Last Message for the row (Use case: Delete Message, Edit Message)
 export const updateLastMessage = async (project_id, message) => {
+    console.log("------project_id---", project_id);
+
+    const last_message = {
+        "project_id": project_id,
+        "message": message
+    }
+    console.log("---------", last_message);
     try {
         const token = localStorage.getItem('access_token') || '';
-        const res = await fetch(API+`update-last-message?project_id=${project_id}&message=${message}`, {
+        const res = await fetch(API+`update-last-message`, {
+            method: 'POST', // Use POST method to send data
             headers: {
-                authorization: `Bearer ${token}`
-            }
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(last_message) // Convert the variables object to a JSON string
         })
         const json = await res.json();
         return json;
@@ -128,6 +139,23 @@ export const downloadProjectMessage = async (project_id) => {
     }
 }
 
+// Delete project
+export const deleteProject = async (project_id) => {
+    try {
+        const token = localStorage.getItem('access_token') || '';
+        const res = await fetch(API+`delete-project?project_id=${project_id}`, {
+            headers: {
+                authorization: `Bearer ${token}`
+            }
+        })
+        
+        return true;
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+
 /* ---------------Customer--------------- */
 // Download customer messages
 export const downloadCustomerMessage = async (customer_id) => {
@@ -152,6 +180,32 @@ export const downloadCustomerMessage = async (customer_id) => {
         console.log(error)
     }
 }
+/* ---------------History--------------- */
+// Download history messages
+export const downloadHistoryMessage = async (history_id) => {
+    try {
+        const token = localStorage.getItem('access_token') || '';
+        const res = await fetch(API+`download-history-message?history_id=${history_id}`, {
+            headers: {
+                authorization: `Bearer ${token}`
+            }
+        })
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'message.txt'; // or any other extension
+        document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+        a.click();
+
+        return true;
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+
 
 // Change automatic send status for customer
 export const changeCustomerStatus = async (customer_id, method) => {
