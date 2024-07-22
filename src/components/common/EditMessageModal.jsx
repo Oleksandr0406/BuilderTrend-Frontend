@@ -5,7 +5,7 @@ export const EditMessageModal = ({message, onSave, onCancel}) => {
     const [text, setText] = useState(message);
 
     const handleChangeText = (e) => {
-        setText(e.target.value)
+        setText(String(e.target.value))
         console.log(e.target.value)
     }
 

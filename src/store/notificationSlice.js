@@ -17,7 +17,8 @@ const notificationSlice = createSlice({
             const obj = {}
             console.log("data", state.data);
             
-            payloadData.forEach((item) => {
+            payloadData.forEach((newItem) => {
+                let item = { ...newItem}
                 if(verifyString(item.claim_number)) {
                     item.claim_number = 'N/A';
                 }

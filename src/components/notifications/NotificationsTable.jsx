@@ -1,7 +1,7 @@
 import React, { useState, useEffect} from 'react'
 import { TbPlus, TbMinus } from "react-icons/tb";
 import { IoMdRefresh } from "react-icons/io";
-import { FiDownload, FiMinusCircle } from "react-icons/fi";
+import { FiDownload, FiMinusCircle, FiSearch  } from "react-icons/fi";
 import { AiFillDelete, AiFillLike } from "react-icons/ai";
 import { LuMessagesSquare, LuPencil } from "react-icons/lu";
 import { IoCloseSharp } from "react-icons/io5";
@@ -54,11 +54,12 @@ export const NotificationsTable = () => {
         timer: 0,
     });
 
-
-
+    const [currentTab, setCurrentTab] = useState(0);
     const [remainTime, setRemainTime] = useState([]);
     const navigate = useNavigate()
 
+    const [searchInput, setSearchInput] = useState("");
+    const [filteredData, setFilteredData] = useState([]);
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                      Handle Get Main Table Data
@@ -74,7 +75,7 @@ export const NotificationsTable = () => {
             })
         
         // console.log(variables);
-    }, [refetch, setSettingsData])
+    }, [refetch, setSettingsData, currentTab])
 
 // -----------------------------------------------------------------------------------------
     
@@ -156,12 +157,11 @@ export const NotificationsTable = () => {
 //                          Get All Table Data and Timer Value
 
     const fetchData = async () => {
-        dispatch(loadingOn())
-        const res = await getNotifications();
+        dispatch(loadingOn());
+        let res = await getNotifications(currentTab);
         const timer = await getTimer();
         console.log("timer: ", timer);
-        dispatch(loadingOff())
-
+        
         if (res.detail === "Could not validate credentials") {
             alert('Unauthorized user!');
             navigate('/signup')
@@ -169,9 +169,11 @@ export const NotificationsTable = () => {
         
         if (res) {
             if (Array.isArray(res)) {
+                console.log("rs: ", res);
                 dispatch(setData(res))
             }
         }
+        dispatch(loadingOff())
 
         dispatch(setSendTimer(timer))
     }
@@ -213,6 +215,15 @@ export const NotificationsTable = () => {
 
 // ----------------------------------------------------------------------------------------
 
+
+
+    useEffect(() => {
+        setFilteredData(data);
+    }, [data]);
+    
+    useEffect(() => {
+        applySearchFilter();
+    }, [searchInput, currentTab]);
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -424,6 +435,37 @@ export const NotificationsTable = () => {
         setRefetch(!refetch);
     }
 
+    const handleSetCurrentTab = (tabIndex) => {
+        setCurrentTab(tabIndex);
+    }
+
+    const handleSearchInputChange = (e) => {
+        setSearchInput(e.target.value);
+    };
+
+    const applySearchFilter = () => {
+        if (searchInput.trim() === "") {
+            setFilteredData(data);
+            return;
+        }
+        const filtered = data.filter((item) => {
+            const itemData = `${item.first_name} ${item.last_name} ${item.project_name} ${item.claim_number}`.toLowerCase();
+            return itemData.includes(searchInput.trim().toLowerCase());
+        });
+        setFilteredData(filtered);
+    };
+
+    const sortByLastName = () => {
+        console.log("hhhhh");
+        let sortedData = [...filteredData].sort((a, b) => a.last_name.localeCompare(b.last_name));
+        setFilteredData(sortedData);
+    }
+
+    const sortByFirstName = () => {
+        let sortedData = [...filteredData].sort((a, b) => a.first_name.localeCompare(b.first_name));
+        setFilteredData(sortedData)
+    }
+
     return (
         <div>
             <div className="w-[400px] pl-8 pt-8">
@@ -435,10 +477,23 @@ export const NotificationsTable = () => {
             <div className="pt-16" >
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
 
-                    <div id="notification" className="py-2 px-4 bg-red-700 inline-block mb-[1px]">
-                        <p className="text-xl font-semibold text-white"
-                        >NOTIFICATIONS</p>
+                    <div id="notification" className="py-2 px-4 bg-red-700 inline-block mb-[1px] cursor-pointer" onClick={() => handleSetCurrentTab(0)}>
+                        <p className="text-xl font-semibold text-white">NOTIFICATIONS</p>
                     </div>
+                    <div id="notification" className="py-2 px-4 bg-red-700 inline-block mb-[1px] mx-1 cursor-pointer" onClick={() => handleSetCurrentTab(1)}>
+                        <p className="text-xl font-semibold text-white">DELETED</p>
+                    </div>
+                    <div className="relative flex items-center mr-auto ml-3">
+                        <input
+                            type="text"
+                            value={searchInput}
+                            onChange={handleSearchInputChange}
+                            placeholder="Search..."
+                            className="py-2 px-4 border rounded-md"
+                        />
+                        <FiSearch className="absolute right-2 text-xl text-gray-600" />
+                    </div>
+                        
                     <div style={{display: 'flex', alignItems: 'center'}}>
                         <BuildertrendScrapingStatus 
                             startBuildertrend={startBuildertrend}
@@ -469,8 +524,8 @@ export const NotificationsTable = () => {
                             <tr>
                                 <th className="w-[5%]"/>
                                 <th className="w-[9%] text-center p-2 text-lg text-white">Send On</th>
-                                <th className="w-[9%] text-white text-lg text-center">Last Name</th>
-                                <th className="w-[9%] text-white text-lg text-center">First Name</th>
+                                <th className="w-[9%] text-white text-lg text-center cursor-pointer" onClick={sortByLastName}>Last Name</th>
+                                <th className="w-[9%] text-white text-lg text-center cursor-pointer" onClick={sortByFirstName}>First Name</th>
                                 <th className="w-[18%] text-white text-lg text-center">Claim</th>
                                 <th className="w-[12%] text-white text-lg text-center">Status</th>
                                 <th className="w-[38%] text-white text-lg text-center">Message</th>
@@ -479,7 +534,7 @@ export const NotificationsTable = () => {
                         
                         <tbody className="bg-white">
                             
-                            {data?.map((item, dataIndex) => {
+                            {filteredData?.map((item, dataIndex) => {
                                 let status = 'REVIEW';
                                 if (item.sent_timestamp) console.log("time:", item.sent_timestamp);
                                 if (item.message_status === 1) {
@@ -650,7 +705,7 @@ export const NotificationsTable = () => {
                                             </td>
                                         </tr>
 
-                                        {expandId === item.customer_id  && item.data.map((childData, childIndex) => {
+                                        {expandId === item.customer_id  && item.data?.map((childData, childIndex) => {
                                             let childStatus = 'REVIEW';
                                             if (childData.message_status === 1) {
                                                 childStatus = 'REVIEW'
@@ -713,10 +768,11 @@ export const NotificationsTable = () => {
                                                                 { childStatus === 'SENT' && (
                                                                     <div className='flex cursor-pointer'>
                                                                         {
+                                                                            
                                                                             (childData.email !== "") && (<>
                                                                                 <img src={messageIcon} alt="messageIcon" style={{width:"30px", height: "30px", marginRight: "-30px"}}/>
-                                                                                <BsCheckLg className={`text-3xl ${childData.email_sent_success === 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer`} />
-                                                                                <BsCheckLg className={`text-3xl ${childData.email_sent_success === 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-4`} />
+                                                                                <BsCheckLg className={`text-3xl ${childData.email_sent_success == 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer`} />
+                                                                                <BsCheckLg className={`text-3xl ${childData.email_sent_success == 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-4`} />
                                                                             </>)
                                                                         }
                                                                         
@@ -751,7 +807,7 @@ export const NotificationsTable = () => {
                                                                         }
                                                                     }}
                                                                 /> }
-                                                                { childStatus === 'SENT' && <AiFillLike className="text-2xl cursor-pointer"/> }
+                                                                {/* { childStatus === 'SENT' && <AiFillLike className="text-2xl cursor-pointer"/> } */}
                                                             </div>
                                                         </div>
                                                     </td>

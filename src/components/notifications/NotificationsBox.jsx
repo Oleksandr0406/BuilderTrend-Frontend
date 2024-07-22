@@ -173,7 +173,7 @@ export const NotificationsBox = () => {
 
     const handlerUpdateLastMessage = async (message) => {
         if (!turnOnEdit) return;
-
+        
         dispatch(loadingOn())
         await updateLastMessage(turnOnEdit, message)
         dispatch(loadingOff())
@@ -551,8 +551,8 @@ export const NotificationsBox = () => {
                                                             {
                                                                 (childData.email !== "") && (<>
                                                                     <img src={messageIcon} alt="messageIcon" style={{width:"30px", height: "30px", marginRight: "-30px"}}/>
-                                                                    <BsCheckLg className={`text-3xl ${childData.email_sent_success === 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer`} />
-                                                                    <BsCheckLg className={`text-3xl ${childData.email_sent_success === 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-4`} />
+                                                                    <BsCheckLg className={`text-3xl ${childData.email_sent_success == 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer`} />
+                                                                    <BsCheckLg className={`text-3xl ${childData.email_sent_success == 1 ? 'text-green-500' : 'text-red-500'} cursor-pointer -ml-4`} />
                                                                 </>)
                                                             }
                                                             
@@ -578,7 +578,7 @@ export const NotificationsBox = () => {
                                                     { childStatus === 'QUED' && <FiMinusCircle className='text-2xl cursor-pointer text-red-500' 
                                                         onClick={() => handlerCancelQued(childData.project_id) }
                                                     />}
-                                                    { childStatus === 'SENT' && <AiFillLike className="text-2xl cursor-pointer"/> }
+                                                    {/* { childStatus === 'SENT' && <AiFillLike className="text-2xl cursor-pointer"/> } */}
                                                 </div>
                                             </div>
 
